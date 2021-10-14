@@ -1,11 +1,11 @@
 # From https://github.com/juliushaertl/nextcloud-docker-dev/blob/master/docker/Dockerfile.php74
-FROM ghcr.io/juliushaertl/nextcloud-dev-php74
+FROM docker.io/stri/nextcloud-dev-php74-arm64
 
 # Get other dependencies
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
         openssl \
-        nano \
+        vim \
         openssh-client \
     ; \
     rm -rf /var/lib/apt/lists/*
@@ -45,8 +45,7 @@ COPY apache.conf /etc/apache2/sites-available/
 # Adjust apache sites
 RUN a2dissite 000-default && \
     a2dissite default-ssl && \
-    a2ensite apache.conf && \
-    service apache2 restart 
+    a2ensite apache.conf
 
 # Copy start script
 COPY start.sh /usr/bin/
@@ -66,7 +65,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | b
     && nvm install --lts=FERMIUM --latest-npm
 
 # Set entrypoint
-ENTRYPOINT  ["start.sh"]
+ENTRYPOINT ["start.sh"]
 
 # Set CMD
 CMD ["apache2-foreground"]

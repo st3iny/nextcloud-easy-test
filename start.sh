@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /tmp
+
 # Remove local remote script if already present
 rm -f remote.sh
 
