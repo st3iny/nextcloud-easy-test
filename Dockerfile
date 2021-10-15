@@ -11,9 +11,7 @@ RUN apt-get update; \
     rm -rf /var/lib/apt/lists/*
 
 # Install composer
-RUN curl -sS https://getcomposer.org/installer | php && \
-    mv composer.phar /usr/local/bin/composer && \
-    chmod +x /usr/local/bin/composer
+COPY --from=composer:1 /usr/bin/composer /usr/local/bin/composer
 
 # Generate self signed certificate
 RUN mkdir -p /certs && \
