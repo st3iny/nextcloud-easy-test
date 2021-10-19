@@ -212,6 +212,10 @@ install_enable_app "$TEXT_BRANCH" text
 install_enable_app "$VIEWER_BRANCH" viewer
 install_enable_app "$ZIPPER_BRANCH" files_zip
 
+# Free some disk space
+shopt -s globstar
+rm -rf /var/www/html/**/node_modules /var/www/html/**/.git
+
 # Clear cache
 cd /var/www/html
 if ! php -f occ maintenance:repair; then
