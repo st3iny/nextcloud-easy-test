@@ -37,12 +37,12 @@ export NVM_DIR="/var/www/.nvm"
 if ! [ -f /var/www/server-completed ]; then
     if ! echo "$SERVER_BRANCH" | grep -q ':'; then
         cd /var/www/html
-        git pull
+        git fetch --depth=1
         if ! git checkout "$SERVER_BRANCH"; then
             echo "Could not get the '$SERVER_BRANCH' server branch. Doesn't seem to exist."
             exit 1
         fi
-        git pull
+        git pull --depth=1
     else
         set -x
         FORK_OWNER="${SERVER_BRANCH%%:*}"
@@ -52,14 +52,14 @@ if ! [ -f /var/www/server-completed ]; then
         rm -r html
         mkdir html
         cd html
-        if ! git clone https://github.com/"$FORK_OWNER"/server.git --branch "$FORK_BRANCH" --single-branch .; then
+        if ! git clone https://github.com/"$FORK_OWNER"/server.git --branch "$FORK_BRANCH" --single-branch --depth=1 .; then
             echo "Could not clone the requested server branch '$FORK_BRANCH' of '$FORK_OWNER'. Does it exist?"
             exit 1
         fi
     fi
 
     # Initiate submodules
-    git submodule update --init
+    git submodule update --init --depth=1
 
     # Manual install
     manual_install
@@ -74,7 +74,7 @@ if ! [ -f /var/www/server-completed ]; then
         exit 1
     fi
 
-    # Set trusted domain if needed 
+    # Set trusted domain if needed
     if [ -n "$TRUSTED_DOMAIN" ]; then
         if ! php -f occ config:system:set trusted_domains 1 --value="$TRUSTED_DOMAIN"; then
             echo "Could not set the trusted domain '$TRUSTED_DOMAIN'"
@@ -108,7 +108,7 @@ if [ -n "$BRANCH" ] && ! [ -f "/var/www/$APPID-completed" ]; then
 
     # Clone repo
     if ! echo "$BRANCH" | grep -q ':'; then
-        if ! git clone https://github.com/nextcloud/"$APPID".git --branch "$BRANCH" --single-branch; then
+        if ! git clone https://github.com/nextcloud/"$APPID".git --branch "$BRANCH" --single-branch --depth=1; then
             echo "Could not clone the requested branch '$BRANCH' of the $APPID app. Does it exist?"
             exit 1
         fi
@@ -117,7 +117,7 @@ if [ -n "$BRANCH" ] && ! [ -f "/var/www/$APPID-completed" ]; then
         local APP_OWNER="${BRANCH%%:*}"
         local APP_BRANCH="${BRANCH#*:}"
         set +x
-        if ! git clone https://github.com/"$APP_OWNER"/"$APPID".git --branch "$APP_BRANCH" --single-branch; then
+        if ! git clone https://github.com/"$APP_OWNER"/"$APPID".git --branch "$APP_BRANCH" --single-branch --depth=1; then
             echo "Could not clone the requested branch '$APP_BRANCH' of the $APPID app of '$APP_OWNER'. Does it exist?"
             exit 1
         fi
@@ -125,7 +125,7 @@ if [ -n "$BRANCH" ] && ! [ -f "/var/www/$APPID-completed" ]; then
 
     # Go into app directory
     cd ./"$APPID"
-    
+
     # Handle node versions
     set -x
     if [ -f package.json ]; then
