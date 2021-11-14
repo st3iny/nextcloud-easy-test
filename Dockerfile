@@ -49,15 +49,18 @@ RUN a2dissite 000-default && \
 COPY start.sh /usr/bin/
 RUN chmod +x /usr/bin/start.sh
 
+# Prepare nvm dir
+ENV NVM_DIR=/opt/nvm
+RUN mkdir -p "$NVM_DIR"
+
 # Correctly set rights
-RUN chown www-data:www-data -R /var/www
+RUN chown www-data:www-data -R /var/www "$NVM_DIR"
 
 # Switch to www-data user to make container more secure
 USER www-data
 
 # Install NVM (Fermium = v14)
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash \
-    && export NVM_DIR="/var/www/.nvm" \
     && . "$NVM_DIR/nvm.sh" \
     && nvm install 16.8.0 --latest-npm \
     && nvm install --lts=FERMIUM --latest-npm

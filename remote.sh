@@ -30,7 +30,6 @@ if [ -z "$SERVER_BRANCH" ]; then
 fi
 
 # Get NVM code
-export NVM_DIR="/var/www/.nvm"
 . "$NVM_DIR/nvm.sh"
 
 # Fix git config
