@@ -38,31 +38,27 @@ git config --global pull.rebase true
 
 # Get latest changes
 if ! [ -f /var/www/server-completed ]; then
+    cd /var/www
+    if [ -d html ]; then
+        rm -rf html
+        mkdir html
+    fi
+    cd html
     if ! echo "$SERVER_BRANCH" | grep -q ':'; then
-        cd /var/www/html
-        git fetch --depth=1
-        if ! git checkout "$SERVER_BRANCH"; then
-            echo "Could not get the '$SERVER_BRANCH' server branch. Doesn't seem to exist."
+        if ! git clone https://github.com/nextcloud/server.git --branch "$SERVER_BRANCH" --single-branch --recurse-submodules --shallow-submodules --depth=1 .; then
+            echo "Could not clone the requested server branch '$SERVER_BRANCH'. Does it exist?"
             exit 1
         fi
-        git pull --depth=1
     else
         set -x
         FORK_OWNER="${SERVER_BRANCH%%:*}"
         FORK_BRANCH="${SERVER_BRANCH#*:}"
         set +x
-        cd /var/www
-        rm -r html
-        mkdir html
-        cd html
-        if ! git clone https://github.com/"$FORK_OWNER"/server.git --branch "$FORK_BRANCH" --single-branch --depth=1 .; then
+        if ! git clone https://github.com/"$FORK_OWNER"/server.git --branch "$FORK_BRANCH" --single-branch --recurse-submodules --shallow-submodules --depth=1 .; then
             echo "Could not clone the requested server branch '$FORK_BRANCH' of '$FORK_OWNER'. Does it exist?"
             exit 1
         fi
     fi
-
-    # Initiate submodules
-    git submodule update --init --depth=1
 
     # Manual install
     manual_install
