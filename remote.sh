@@ -79,6 +79,12 @@ if ! [ -f /var/www/server-completed ]; then
             exit 1
         fi
     fi
+
+    # Set instance name
+    if [ -n "$INSTANCE_NAME" ]; then
+        php -f occ theming:config name "$INSTANCE_NAME"
+    fi
+
     touch /var/www/server-completed
 fi
 
