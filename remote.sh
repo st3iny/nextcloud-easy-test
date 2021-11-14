@@ -33,6 +33,9 @@ fi
 export NVM_DIR="/var/www/.nvm"
 . "$NVM_DIR/nvm.sh"
 
+# Fix git config
+git config --global pull.rebase true
+
 # Get latest changes
 if ! [ -f /var/www/server-completed ]; then
     if ! echo "$SERVER_BRANCH" | grep -q ':'; then
