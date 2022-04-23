@@ -7,6 +7,7 @@ RUN apt-get update; \
         openssl \
         vim \
         openssh-client \
+        jq \
     ; \
     rm -rf /var/lib/apt/lists/*
 

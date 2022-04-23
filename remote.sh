@@ -15,18 +15,16 @@ show_startup_info() {
     fi
 }
 
-# Manual install: will skip everything and just start apache
-manual_install() {
-    if [ -n "$MANUAL_INSTALL" ]; then
-        touch /var/www/server-completed
-        show_startup_info
-        exit 0
-    fi
+# Shortcut to occ
+occ () {
+    sudo -u www-data php -f /var/www/html/occ "$@"
 }
 
-# Handle empty server branch variable
+# Handle empty or partial server branch variable
 if [ -z "$SERVER_BRANCH" ]; then
-    export SERVER_BRANCH=master
+    export SERVER_BRANCH=nextcloud:master
+elif ! echo "$SERVER_BRANCH" | grep -q ':'; then
+    export SERVER_BRANCH=nextcloud:"$SERVER_BRANCH"
 fi
 
 # Get NVM code
@@ -35,152 +33,123 @@ fi
 # Fix git config
 git config --global pull.rebase true
 
-# Get latest changes
-if ! [ -f /var/www/server-completed ]; then
-    cd /var/www
-    if [ -d html ]; then
-        rm -rf html
-        mkdir html
-    fi
-    cd html
-    if ! echo "$SERVER_BRANCH" | grep -q ':'; then
-        if ! git clone https://github.com/nextcloud/server.git --branch "$SERVER_BRANCH" --single-branch --recurse-submodules --shallow-submodules --depth=1 .; then
-            echo "Could not clone the requested server branch '$SERVER_BRANCH'. Does it exist?"
-            exit 1
-        fi
-    else
-        set -x
-        FORK_OWNER="${SERVER_BRANCH%%:*}"
-        FORK_BRANCH="${SERVER_BRANCH#*:}"
-        set +x
-        if ! git clone https://github.com/"$FORK_OWNER"/server.git --branch "$FORK_BRANCH" --single-branch --recurse-submodules --shallow-submodules --depth=1 .; then
-            echo "Could not clone the requested server branch '$FORK_BRANCH' of '$FORK_OWNER'. Does it exist?"
-            exit 1
-        fi
-    fi
+# Extract server branch name and fork owner
+FORK_OWNER="${SERVER_BRANCH%%:*}"
+FORK_BRANCH="${SERVER_BRANCH#*:}"
 
-    # Manual install
-    manual_install
-
-    # Install Nextcloud
-    if ! php -f occ \
-            maintenance:install \
-            --database=sqlite \
-            --admin-user=admin \
-            --admin-pass=nextcloud; then
-        echo "Failed to create the instance."
-        exit 1
-    fi
-
-    # Set trusted domain if needed
-    if [ -n "$TRUSTED_DOMAIN" ]; then
-        if ! php -f occ config:system:set trusted_domains 1 --value="$TRUSTED_DOMAIN"; then
-            echo "Could not set the trusted domain '$TRUSTED_DOMAIN'"
-            exit 1
-        fi
-    fi
-
-    # Set instance name
-    if [ -n "$INSTANCE_NAME" ]; then
-        php -f occ theming:config name "$INSTANCE_NAME"
-    fi
-
-    touch /var/www/server-completed
+# Clone server repository
+if ! git clone https://github.com/"$FORK_OWNER"/server.git \
+    --branch "$FORK_BRANCH" \
+    --single-branch \
+    --recurse-submodules \
+    --shallow-submodules \
+    --depth=1 \
+    /tmp/html
+then
+    echo "Could not clone the requested server branch '$FORK_BRANCH' of '$FORK_OWNER'. Does it exist?"
+    exit 1
 fi
 
-# Manual install
-manual_install
+# Move server repository into place
+rsync -arh /tmp/html/ /var/www/html/
+rm -rf /tmp/html
+
+# Fix permissions
+chown -R www-data:www-data /var/www/html
+
+# Install Nextcloud
+if ! occ \
+        maintenance:install \
+        --database=sqlite \
+        --admin-user=admin \
+        --admin-pass=nextcloud; then
+    echo "Failed to create the instance."
+    exit 1
+fi
+
+# Set trusted domain if needed
+if [ -n "$TRUSTED_DOMAIN" ]; then
+    if ! occ config:system:set trusted_domains 1 --value="$TRUSTED_DOMAIN"; then
+        echo "Could not set the trusted domain '$TRUSTED_DOMAIN'"
+        exit 1
+    fi
+fi
+
+# Set instance name
+if [ -n "$INSTANCE_NAME" ]; then
+    occ theming:config name "$INSTANCE_NAME"
+fi
 
 # Install and enable apps
 install_enable_app() {
+    # Variables
+    local BRANCH="$1"
+    local APPID="$2"
 
-# Variables
-local BRANCH="$1"
-local APPID="$2"
-
-# Logic
-if [ -n "$BRANCH" ] && ! [ -f "/var/www/$APPID-completed" ]; then
-
-    # Go into apps directory
-    cd /var/www/html/apps
-
-    # Remove app directory
-    if [ -d ./"$APPID" ]; then
-        php -f ../occ app:disable "$APPID"
-        rm -r ./"$APPID"
-    fi
-
-    # Clone repo
-    if ! echo "$BRANCH" | grep -q ':'; then
-        if ! git clone https://github.com/nextcloud/"$APPID".git --branch "$BRANCH" --single-branch --depth=1; then
-            echo "Could not clone the requested branch '$BRANCH' of the $APPID app. Does it exist?"
-            exit 1
+    # Logic
+    if [ -n "$BRANCH" ]; then
+        # Fix partial branch
+        if ! echo "$BRANCH" | grep -q ':'; then
+            BRANCH=nextcloud:"$BRANCH"
         fi
-    else
-        set -x
+
+        # Go into apps directory
+        cd /var/www/html/apps
+
+        # Remove app directory
+        if [ -d ./"$APPID" ]; then
+            php -f ../occ app:disable "$APPID"
+            rm -r ./"$APPID"
+        fi
+
         local APP_OWNER="${BRANCH%%:*}"
         local APP_BRANCH="${BRANCH#*:}"
-        set +x
-        if ! git clone https://github.com/"$APP_OWNER"/"$APPID".git --branch "$APP_BRANCH" --single-branch --depth=1; then
+
+        # Clone repo
+        if ! git clone https://github.com/"$APP_OWNER"/"$APPID".git \
+            --branch "$APP_BRANCH" \
+            --single-branch \
+            --depth=1
+        then
             echo "Could not clone the requested branch '$APP_BRANCH' of the $APPID app of '$APP_OWNER'. Does it exist?"
             exit 1
         fi
-    fi
 
-    # Go into app directory
-    cd ./"$APPID"
+        # Go into app directory
+        cd ./"$APPID"
 
-    # Handle node versions
-    set -x
-    if [ -f package.json ]; then
-        local NODE_LINE=$(grep '"node":' package.json | head -1)
-    fi
-    if [ -n "$NODE_LINE" ] && echo "$NODE_LINE" | grep -q '>='; then
-        local NODE_VERSION="$(echo "$NODE_LINE" | grep -oP '>=[0-9]+' | sed 's|>=||')"
-        if [ -n "$NODE_VERSION" ] && [ "$NODE_VERSION" -gt 14 ]; then
-            set +x
-            if [ "$NODE_VERSION" -gt 16 ]; then
-                echo "The node version of $APPID is too new. Need to update the container."
+        # Handle node versions
+        nvm use --lts
+
+        # Install composer dependencies
+        if [ -f composer.json ]; then
+            if ! composer install --no-dev; then
+                echo "Could not install composer dependencies of the $APPID app."
                 exit 1
             fi
-            nvm use 16.8.0
-        else
-            set +x
-            nvm use --lts
         fi
-    else
-        set +x
-        nvm use --lts
-    fi
 
-    # Install composer dependencies
-    if [ -f composer.json ]; then
-        if ! composer install --no-dev; then
-            echo "Could not install composer dependencies of the $APPID app."
+        # Compile apps
+        if [ -f package.json ]; then
+            npm_cmd=build
+
+            # Try to create a dev build
+            if [ "$(jq -r .scripts.dev < package.json)" != null ]; then
+                npm_cmd=dev
+            fi
+
+            if ! npm install || ! npm run "$npm_cmd" --if-present; then
+                echo "Could not compile the $APPID app."
+                exit 1
+            fi
+        fi
+
+        # Enable app
+        if ! occ app:enable "$APPID"; then
+            echo "Could not enable the $APPID app."
             exit 1
         fi
     fi
-
-    # Compile apps
-    if [ -f package.json ]; then
-        if ! npm ci || ! npm run build --if-present; then
-            echo "Could not compile the $APPID app."
-            exit 1
-        fi
-    fi
-
-    # Go into occ directory
-    cd /var/www/html
-
-    # Enable app
-    if ! php -f occ app:enable "$APPID"; then
-        echo "Could not enable the $APPID app."
-        exit 1
-    fi
-
-    # The app was enabled
-    touch "/var/www/$APPID-completed"
-fi
 }
 
 # Compatible apps
@@ -222,7 +191,7 @@ rm -rf /var/www/html/**/node_modules /var/www/html/**/.git
 
 # Clear cache
 cd /var/www/html
-if ! php -f occ maintenance:repair; then
+if ! occ maintenance:repair; then
     echo "Could not clear the cache"
     exit 1
 fi
