@@ -1,5 +1,5 @@
 # From https://github.com/juliushaertl/nextcloud-docker-dev/blob/master/docker/Dockerfile.php74
-FROM docker.io/stri/nextcloud-dev-php74-arm64
+FROM ghcr.io/juliushaertl/nextcloud-dev-php74:latest
 
 # Get other dependencies
 RUN apt-get update; \
@@ -8,6 +8,7 @@ RUN apt-get update; \
         vim \
         openssh-client \
         jq \
+        rsync \
     ; \
     rm -rf /var/lib/apt/lists/*
 
@@ -39,12 +40,10 @@ RUN a2enmod rewrite \
     ssl
 
 # Copy apache conf
-COPY apache.conf /etc/apache2/sites-available/
+COPY apache.conf /etc/apache2/sites-available/nextcloud.conf
 
 # Adjust apache sites
-RUN a2dissite 000-default && \
-    a2dissite default-ssl && \
-    a2ensite apache.conf
+RUN a2dissite 000-default && a2dissite default-ssl && a2ensite nextcloud.conf
 
 # Copy start script
 COPY start.sh /usr/bin/
@@ -57,14 +56,10 @@ RUN mkdir -p "$NVM_DIR"
 # Correctly set rights
 RUN chown www-data:www-data -R /var/www "$NVM_DIR"
 
-# Switch to www-data user to make container more secure
-USER www-data
-
-# Install NVM (Fermium = v14)
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash \
+# Install NVM and node lts (including latest npm)
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash \
     && . "$NVM_DIR/nvm.sh" \
-    && nvm install 16.8.0 --latest-npm \
-    && nvm install --lts=FERMIUM --latest-npm
+    && nvm install --lts --latest-npm
 
 # Set entrypoint
 ENTRYPOINT ["start.sh"]
