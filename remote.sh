@@ -98,7 +98,7 @@ install_enable_app() {
 
         # Remove app directory
         if [ -d ./"$APPID" ]; then
-            php -f ../occ app:disable "$APPID"
+            occ app:disable "$APPID"
             rm -r ./"$APPID"
         fi
 
