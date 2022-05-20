@@ -69,10 +69,14 @@ fi
 
 # Set trusted domain if needed
 if [ -n "$TRUSTED_DOMAIN" ]; then
-    if ! occ config:system:set trusted_domains 1 --value="$TRUSTED_DOMAIN"; then
-        echo "Could not set the trusted domain '$TRUSTED_DOMAIN'"
-        exit 1
-    fi
+    index=1
+    for domain in $TRUSTED_DOMAIN; do
+        if ! occ config:system:set trusted_domains "$index" --value="$domain"; then
+            echo "Could not set the trusted domain '$domain'"
+            exit 1
+        fi
+        index=$((index + 1))
+    done
 fi
 
 # Set instance name
