@@ -84,6 +84,18 @@ if [ -n "$INSTANCE_NAME" ]; then
     occ theming:config name "$INSTANCE_NAME"
 fi
 
+# Set reverse proxy configs
+[ -n "$OVERWRITE_CLI_URL" ] && occ config:system:set overwrite.cli.url --value="$OVERWRITE_CLI_URL"
+[ -n "$OVERWRITE_PROTOCOL" ] && occ config:system:set overwriteprotocol --value="$OVERWRITE_PROTOCOL"
+[ -n "$OVERWRITE_HOST" ] && occ config:system:set overwritehost --value="$OVERWRITE_HOST"
+[ -n "$OVERWRITE_WEB_ROOT" ] && occ config:system:set overwritewebroot --value="$OVERWRITE_WEB_ROOT"
+
+# Configure pretty urls
+if [ "$ENABLE_PRETTY_URLS" = true ]; then
+    occ config:system:set htaccess.RewriteBase --value=/
+    occ maintenance:update:htaccess
+fi
+
 # Install and enable apps
 install_enable_app() {
     # Variables
