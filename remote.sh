@@ -20,6 +20,9 @@ occ () {
     sudo -u www-data php -f /var/www/html/occ "$@"
 }
 
+# Skip if already installed
+[ -f /var/www/html/installed ] && exit 0
+
 # Handle empty or partial server branch variable
 if [ -z "$SERVER_BRANCH" ]; then
     export SERVER_BRANCH=nextcloud:master
@@ -215,6 +218,9 @@ if ! occ maintenance:repair; then
     echo "Could not clear the cache"
     exit 1
 fi
+
+# Mark instance as installed
+touch /var/www/html/installed
 
 # Show how to reach the server
 show_startup_info
