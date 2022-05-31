@@ -67,6 +67,10 @@ if ! occ \
     exit 1
 fi
 
+# Set logging configuration
+[ -n "$LOG_FILE" ] && occ config:system:set logfile --value="$LOG_FILE"
+[ -n "$LOG_LEVEL" ] && occ config:system:set loglevel --value="$LOG_LEVEL" --type=integer
+
 # Set trusted domain if needed
 if [ -n "$TRUSTED_DOMAIN" ]; then
     index=1
