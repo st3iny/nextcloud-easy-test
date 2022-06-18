@@ -12,7 +12,9 @@ if ! wget https://raw.githubusercontent.com/st3iny/nextcloud-easy-test/enh/noid/
 fi
 
 # Execute it
-if ! bash remote.sh; then
+set -o pipefail
+mkdir -p /var/log/remote.sh
+if ! bash remote.sh 2>&1 | tee /var/log/promtail/remote.sh.log; then
     exit 1
 fi
 
