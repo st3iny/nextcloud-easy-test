@@ -16,10 +16,15 @@ RUN apt-get update; \
 COPY --from=composer:1 /usr/bin/composer /usr/local/bin/composer
 
 # Generate self signed certificate
-RUN mkdir -p /certs && \
-    cd /certs && \
-    openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=DE/ST=BE/L=Local/O=Dev/CN=localhost" -keyout ./ssl.key -out ./ssl.crt && \
-    chmod -R +r ./
+RUN mkdir -p /certs \
+    && openssl req -new \
+        -newkey rsa:4096 \
+        -days 3650 \
+        -nodes \
+        -x509 \
+        -subj "/C=DE/ST=SN/L=Local/O=Dev/CN=localhost" \
+        -keyout /certs/tls.key \
+        -out /certs/tls.crt
 
 # Remove default ports
 RUN rm /etc/apache2/ports.conf; \
