@@ -109,6 +109,9 @@ install_enable_app() {
     local BRANCH="$1"
     local APPID="$2"
 
+    # Dev mail servers are probably not secure
+    [ "$APPID" = mail ] && occ config:system:set --type=bool --value=false app.mail.verify-tls-peer
+
     # Logic
     if [ -n "$BRANCH" ]; then
         # Fix partial branch
