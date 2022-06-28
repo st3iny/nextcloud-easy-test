@@ -164,7 +164,7 @@ install_enable_app() {
                 npm_cmd=dev
             fi
 
-            if ! npm i --no-audit --legacy-peer-deps || ! npm run "$npm_cmd" --if-present; then
+            if ! npm i --no-audit || ! npm run "$npm_cmd" --if-present; then
                 echo "Could not compile the $APPID app."
                 exit 1
             fi
