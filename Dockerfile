@@ -9,6 +9,7 @@ RUN apt-get update; \
         openssh-client \
         jq \
         rsync \
+        unzip \
     ; \
     rm -rf /var/lib/apt/lists/*
 
