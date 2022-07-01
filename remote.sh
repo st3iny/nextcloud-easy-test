@@ -24,11 +24,9 @@ occ () {
 [ -f /var/www/html/installed ] && exit 0
 
 # Handle empty or partial server branch variable
-if [ -z "$SERVER_BRANCH" ]; then
-    export SERVER_BRANCH=nextcloud:master
-elif ! echo "$SERVER_BRANCH" | grep -q ':'; then
-    export SERVER_BRANCH=nextcloud:"$SERVER_BRANCH"
-fi
+[ -z "$SERVER_OWNER" ] && SERVER_OWNER=nextcloud
+[ -z "$SERVER_REPO" ] && SERVER_REPO=server
+[ -z "$SERVER_BRANCH" ] && SERVER_BRANCH=master
 
 # Get NVM code
 . "$NVM_DIR/nvm.sh"
@@ -36,20 +34,15 @@ fi
 # Fix git config
 git config --global pull.rebase true
 
-# Extract server branch name and fork owner
-FORK_OWNER="${SERVER_BRANCH%%:*}"
-FORK_BRANCH="${SERVER_BRANCH#*:}"
-
 # Clone server repository
-if ! git clone https://github.com/"$FORK_OWNER"/server.git \
-    --branch "$FORK_BRANCH" \
+if ! git clone https://github.com/"$SERVER_OWNER"/"$SERVER_REPO".git /tmp/html \
+    --branch "$SERVER_BRANCH" \
     --single-branch \
     --recurse-submodules \
     --shallow-submodules \
-    --depth=1 \
-    /tmp/html
+    --depth=1
 then
-    echo "Could not clone the requested server branch '$FORK_BRANCH' of '$FORK_OWNER'. Does it exist?"
+    echo "Could not clone the requested server branch '$SERVER_BRANCH' of '$SERVER_OWNER/$SERVER_REPO'. Does it exist?"
     exit 1
 fi
 
@@ -106,19 +99,25 @@ fi
 # Install and enable apps
 install_enable_app() {
     # Variables
-    local BRANCH="$1"
+    local APP_PREFIX="$1"
     local APPID="$2"
+
+    # Get values from given prefix
+    local APP_OWNER_VAR="${APP_PREFIX}_OWNER"
+    local APP_OWNER="${!APP_OWNER_VAR}"
+    local APP_REPO_VAR="${APP_PREFIX}_REPO"
+    local APP_REPO="${!APP_REPO_VAR}"
+    local APP_BRANCH_VAR="${APP_PREFIX}_BRANCH"
+    local APP_BRANCH="${!APP_BRANCH_VAR}"
+
+    [ -z "$APP_OWNER" ] && APP_OWNER=nextcloud
+    [ -z "$APP_REPO" ] && APP_REPO="$APPID"
 
     # Dev mail servers are probably not secure
     [ "$APPID" = mail ] && occ config:system:set --type=bool --value=false app.mail.verify-tls-peer
 
     # Logic
-    if [ -n "$BRANCH" ]; then
-        # Fix partial branch
-        if ! echo "$BRANCH" | grep -q ':'; then
-            BRANCH=nextcloud:"$BRANCH"
-        fi
-
+    if [ -n "$APP_BRANCH" ]; then
         # Go into apps directory
         cd /var/www/html/apps
 
@@ -128,16 +127,13 @@ install_enable_app() {
             rm -r ./"$APPID"
         fi
 
-        local APP_OWNER="${BRANCH%%:*}"
-        local APP_BRANCH="${BRANCH#*:}"
-
         # Clone repo
-        if ! git clone https://github.com/"$APP_OWNER"/"$APPID".git \
+        if ! git clone https://github.com/"$APP_OWNER"/"$APP_REPO".git "$APPID" \
             --branch "$APP_BRANCH" \
             --single-branch \
             --depth=1
         then
-            echo "Could not clone the requested branch '$APP_BRANCH' of the $APPID app of '$APP_OWNER'. Does it exist?"
+            echo "Could not clone the requested branch '$APP_BRANCH' of the $APPID app of '$APP_OWNER/$APP_REPO'. Does it exist?"
             exit 1
         fi
 
@@ -179,37 +175,37 @@ install_enable_app() {
 }
 
 # Compatible apps
-install_enable_app "$ACTIVITY_BRANCH" activity
-install_enable_app "$APPROVAL_BRANCH" approval
-install_enable_app "$BOOKMARKS_BRANCH" bookmarks
-install_enable_app "$CALENDAR_BRANCH" calendar
-install_enable_app "$CIRCLES_BRANCH" circles
-install_enable_app "$CONTACTS_BRANCH" contacts
-install_enable_app "$DECK_BRANCH" deck
-install_enable_app "$DOWNLOADLIMIT_BRANCH" files_downloadlimit
-install_enable_app "$E2EE_BRANCH" end_to_end_encryption
-install_enable_app "$FIRSTRUNWIZARD_BRANCH" firstrunwizard
-install_enable_app "$FORMS_BRANCH" forms
-install_enable_app "$GROUPFOLDERS_BRANCH" groupfolders
-install_enable_app "$GUESTS_BRANCH" guests
-install_enable_app "$IMPERSONATE_BRANCH" impersonate
-# install_enable_app "$ISSUTEMPLATE_BRANCH" issuetemplate
-install_enable_app "$LOGREADER_BRANCH" logreader
-install_enable_app "$MAIL_BRANCH" mail
-install_enable_app "$MAPS_BRANCH" maps
-install_enable_app "$NEWS_BRANCH" news
-install_enable_app "$NOTES_BRANCH" notes
-install_enable_app "$NOTIFICATIONS_BRANCH" notifications
-install_enable_app "$PDFVIEWER_BRANCH" files_pdfviewer
-install_enable_app "$PHOTOS_BRANCH" photos
-install_enable_app "$POLLS_BRANCH" polls
-install_enable_app "$RECOMMENDATIONS_BRANCH" recommendations
-install_enable_app "$SERVERINFO_BRANCH" serverinfo
-install_enable_app "$TALK_BRANCH" spreed
-install_enable_app "$TASKS_BRANCH" tasks
-install_enable_app "$TEXT_BRANCH" text
-install_enable_app "$VIEWER_BRANCH" viewer
-install_enable_app "$ZIPPER_BRANCH" files_zip
+install_enable_app ACTIVITY activity
+install_enable_app APPROVAL approval
+install_enable_app BOOKMARKS bookmarks
+install_enable_app CALENDAR calendar
+install_enable_app CIRCLES circles
+install_enable_app CONTACTS contacts
+install_enable_app DECK deck
+install_enable_app DOWNLOADLIMIT files_downloadlimit
+install_enable_app E2EE end_to_end_encryption
+install_enable_app FIRSTRUNWIZARD firstrunwizard
+install_enable_app FORMS forms
+install_enable_app GROUPFOLDERS groupfolders
+install_enable_app GUESTS guests
+install_enable_app IMPERSONATE impersonate
+# install_enable_app ISSUTEMPLATE issuetemplate
+install_enable_app LOGREADER logreader
+install_enable_app MAIL mail
+install_enable_app MAPS maps
+install_enable_app NEWS news
+install_enable_app NOTES notes
+install_enable_app NOTIFICATIONS notifications
+install_enable_app PDFVIEWER files_pdfviewer
+install_enable_app PHOTOS photos
+install_enable_app POLLS polls
+install_enable_app RECOMMENDATIONS recommendations
+install_enable_app SERVERINFO serverinfo
+install_enable_app TALK spreed
+install_enable_app TASKS tasks
+install_enable_app TEXT text
+install_enable_app VIEWER viewer
+install_enable_app ZIPPER files_zip
 
 # Free some disk space
 shopt -s globstar
