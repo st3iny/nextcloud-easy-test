@@ -65,7 +65,9 @@ RUN chown www-data:www-data -R /var/www "$NVM_DIR"
 # Install NVM and node lts (including latest npm)
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash \
     && . "$NVM_DIR/nvm.sh" \
-    && nvm install --lts
+    && nvm install --lts=gallium \
+    && nvm use --lts \
+    && npm install -g npm@7
 
 # Set entrypoint
 ENTRYPOINT ["start.sh"]
