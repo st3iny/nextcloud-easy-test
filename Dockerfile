@@ -14,7 +14,7 @@ RUN apt-get update; \
     rm -rf /var/lib/apt/lists/*
 
 # Install composer
-COPY --from=composer:1 /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 # Generate self signed certificate
 RUN mkdir -p /certs \
