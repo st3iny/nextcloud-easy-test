@@ -34,6 +34,9 @@ occ () {
 # Fix git config
 git config --global pull.rebase true
 
+# Allow composer to be run as root
+export COMPOSER_ALLOW_SUPERUSER=1
+
 # Clone server repository
 if ! git clone https://github.com/"$SERVER_OWNER"/"$SERVER_REPO".git /tmp/html \
     --branch "$SERVER_BRANCH" \
