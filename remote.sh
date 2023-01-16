@@ -117,7 +117,10 @@ install_enable_app() {
     [ -z "$APP_REPO" ] && APP_REPO="$APPID"
 
     # Dev mail servers are probably not secure
-    [ "$APPID" = mail ] && occ config:system:set --type=bool --value=false app.mail.verify-tls-peer
+    if [ "$APPID" = mail ]; then
+        occ config:system:set --type=bool --value=false app.mail.verify-tls-peer
+        occ config:system:set --type=bool --value=true allow_local_remote_servers
+    fi
 
     # Logic
     if [ -n "$APP_BRANCH" ]; then
