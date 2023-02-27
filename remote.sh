@@ -87,9 +87,9 @@ install_nextcloud_vue() {
         local VUE_OWNER="${NEXTCLOUDVUE_BRANCH%%:*}"
         local VUE_BRANCH="${NEXTCLOUDVUE_BRANCH#*:}"
         local VUE_REPO=nextcloud-vue
-        if echo "$VUE_BRANCH" | grep -q '#'; then
-            VUE_REPO="${VUE_BRANCH%%#*}"
-            VUE_BRANCH="${VUE_BRANCH#*#}"
+        if echo "$VUE_BRANCH" | grep -q '@'; then
+            VUE_REPO="${VUE_BRANCH#*@}"
+            VUE_BRANCH="${VUE_BRANCH%%@*}"
         fi
         set +x
         mkdir /var/www/nextcloud-vue
@@ -149,9 +149,9 @@ if ! [ -f /var/www/server-completed ]; then
     FORK_OWNER="${SERVER_BRANCH%%:*}"
     FORK_BRANCH="${SERVER_BRANCH#*:}"
     FORK_REPO=server
-    if echo "$FORK_BRANCH" | grep -q '#'; then
-        FORK_REPO="${FORK_BRANCH%%#*}"
-        FORK_BRANCH="${FORK_BRANCH#*#}"
+    if echo "$FORK_BRANCH" | grep -q '@'; then
+        FORK_REPO="${FORK_BRANCH#*@}"
+        FORK_BRANCH="${FORK_BRANCH%%@*}"
     fi
     set +x
     cd /var/www/nextcloud || exit
@@ -278,9 +278,9 @@ if [ -n "$BRANCH" ] && ! [ -f "/var/www/$APPID-completed" ]; then
     local APP_OWNER="${BRANCH%%:*}"
     local APP_BRANCH="${BRANCH#*:}"
     local APP_REPO="$APPID"
-    if echo "$APP_BRANCH" | grep -q '#'; then
-        APP_REPO="${APP_BRANCH%%#*}"
-        APP_BRANCH="${APP_BRANCH#*#}"
+    if echo "$APP_BRANCH" | grep -q '@'; then
+        APP_REPO="${APP_BRANCH#*@}"
+        APP_BRANCH="${APP_BRANCH%%@*}"
     fi
     set +x
     if ! git clone https://github.com/"$APP_OWNER"/"$APP_REPO".git --branch "$APP_BRANCH" --single-branch --depth 1 "$APPID"; then
