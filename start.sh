@@ -4,7 +4,7 @@
 rm -f remote.sh
 
 # Download remote script
-if ! wget https://raw.githubusercontent.com/szaimen/nextcloud-easy-test/main/remote.sh; then
+if ! wget https://raw.githubusercontent.com/st3iny/nextcloud-easy-test/testing/remote.sh; then
     echo "Failed to download the remote script."
     exit 1
 fi
